@@ -27,4 +27,3 @@ def run():
     app.run('0.0.0.0', args.port)
 
     stop_updating()
-

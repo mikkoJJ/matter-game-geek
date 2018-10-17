@@ -46,7 +46,7 @@ class BggPlays:
                 if xml_play_child.tag == 'item':
                     play['game_id'] = int(xml_play_child.get('objectid'))
                     play['game_name'] = xml_play_child.get('name')
-                    play['game_thumbnail'] = self._get_thumbnail(play['game_id'])
+                    # play['game_thumbnail'] = self._get_thumbnail(play['game_id'])
                 elif xml_play_child.tag == 'comments':
                     play['comment'] = xml_play[1].text
 
@@ -79,7 +79,7 @@ class BggPlays:
 
         num_games = 10
 
-        return [{'name': play['game_name'], 'thumbnail': play['game_thumbnail']} for play in self.data[:num_games]]
+        return [{'name': play['game_name'], 'thumbnail': self._get_thumbnail(play['game_id'])} for play in self.data[:num_games]]
 
     def cooperative_game_statistics(self) -> dict:
         """ Get cooperative game statistics (number of wins and number of losses). These are parsed from BGG play
@@ -93,8 +93,8 @@ class BggPlays:
         if self.data is None:
             raise Exception("No data found for latest played games. Maybe it has not been fetched yet.")
 
-        wins = len([play for play in self.data if WON_TEXT in play['comment']])
-        losses = len([play for play in self.data if LOST_TEXT in play['comment']])
+        wins = len([play for play in self.data if 'comment' in play and WON_TEXT in play['comment']])
+        losses = len([play for play in self.data if 'comment' in play and LOST_TEXT in play['comment']])
         percentage = (wins / (wins + losses)) * 100
 
         return {'wins': wins, 'losses': losses, 'win_percentage': int(percentage)}
@@ -109,7 +109,7 @@ class BggPlays:
         ```
         """
         play = next(g for g in self.data if g['game_id'] == game_id)
-        return {'name': play['game_name'], 'thumbnail': play['game_thumbnail']}
+        return {'name': play['game_name'], 'thumbnail': self._get_thumbnail(play['game_id'])}
 
     def most_played_game(self) -> dict:
         """ Get the game that has the most amount of time marked on it, and how many minutes total
@@ -169,6 +169,9 @@ class BggPlays:
 
 
 class BggPlaysSchedulerThread(Thread):
+    """ Thread to run a scheduler until stopped. The scheduler
+    should be configured elsewhere.
+    """
     def __init__(self, stopFlag):
         super().__init__()
         self.stopped = stopFlag
