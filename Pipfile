@@ -10,6 +10,7 @@ schedule = "*"
 Flask = "*"
 "Jinja2" = "*"
 pylint = "*"
+requests-cache = "*"
 
 [dev-packages]
 

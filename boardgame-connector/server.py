@@ -1,4 +1,4 @@
-from .boardgame_api import fetch_data, stop_updating
+from .boardgame_api import fetch_data
 from .boardgame_api import api
 
 import argparse
@@ -25,5 +25,3 @@ def run():
     fetch_data()
 
     app.run('0.0.0.0', args.port)
-
-    stop_updating()

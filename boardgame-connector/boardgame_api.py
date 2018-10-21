@@ -11,13 +11,6 @@ def fetch_data():
     """ Call to fetch data to the data container.
     """
     data.fetch_data()
-    data.start_updating()
-
-
-def stop_updating():
-    """ Stop the scheduler thread that is updating plays data.
-    """
-    data.stop_updating.set()
 
 
 @api.route('/plays/latestgames')
@@ -26,10 +19,9 @@ def last_played_games():
 
     logging.debug("latest games played: {}".format(games))
 
-    html = render_template('game_list.html', games=games).replace('"', '\\"')
-    title = 'Latest games played by cLautapelikerho'
+    html = render_template('game_list.html', games=games)
 
-    return '{{ "title": "{0}", "content": "{1}" }}'.format(title, html)
+    return html
 
 
 @api.route('/plays/statistics')
@@ -42,6 +34,5 @@ def statistics():
 
     logging.debug("most played game: {}".format(most_played))
 
-    html = render_template('statistics.html', coops=coop_statistics, most_played=most_played).replace('"', '\\"')
-    title = 'cLautapelikerho statistics'
-    return '{{ "title": "{0}", "content": "{1}" }}'.format(title, html)
+    html = render_template('statistics.html', coops=coop_statistics, most_played=most_played)
+    return html

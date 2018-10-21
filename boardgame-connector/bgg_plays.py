@@ -1,12 +1,12 @@
-from .bgg_api import BASE_URL, USERNAME
+from .bgg_api import BASE_URL
 
 from itertools import groupby
 from lxml import etree
-from threading import Thread, Event
+from datetime import timedelta, datetime
+import os
 import logging
 import requests
-import schedule
-import time
+import requests_cache
 
 # Text in a BGG play comment that equates to a cooperative game win
 WON_TEXT = "Won"
@@ -23,10 +23,17 @@ class BggPlays:
         """ Create a new Plays instance. Use `fetch_data` to get
         plays data from the BGG API.
 
-        Fetched data is saved into memory (`self.data`).
+        Fetched data is saved into memory (`self.data`). All requests
+        to the BGG API are cached for 12 hours to prevent unnecessary
+        traffic to the API.
         """
         self.data = None
-        self.stop_updating = Event()
+        requests_cache.install_cache('bgg', expire_after=timedelta(hours=12))
+
+        try:
+            self.username = os.environ['BGG_USERNAME']
+        except KeyError:
+            raise Exception('Unable to get data from BGG, BGG_USERNAME env variable not set.')
 
     def fetch_data(self):
         """ Fetch and parse plays data from BGG API.
@@ -35,12 +42,13 @@ class BggPlays:
         """
         logging.info("Fetching data from the BGG API")
         uri = 'plays'
-        params = {'username': USERNAME}
+        params = {'username': self.username}
         xml_root = BggPlays.request_data(uri, params)
         plays = []
 
         for xml_play in xml_root:
             play = {}
+            play['date'] = xml_play.get('date')
 
             for xml_play_child in xml_play:
                 if xml_play_child.tag == 'item':
@@ -58,20 +66,12 @@ class BggPlays:
         self.data = plays
         logging.info("Data fetched")
 
-    def start_updating(self):
-        """ Start a job that updates the plays data contained by polling the BGG API every
-        midnight (so data updates once per day).
-        """
-        schedule.every().day.at('00:00').do(self.fetch_data)
-        thread = BggPlaysSchedulerThread(self.stop_updating)
-        thread.start()
-
     def latest_played_games(self) -> list:
         """ Get the names of games last played as a list.
 
         :return a list of dicts that look like this:
         ```
-        { "name": "name of the game", "thumbnail": "http://thumbnail.url.example.com" }
+        { "name": "name of the game", "date": "2018-06-22", "thumbnail": "http://thumbnail.url.example.com" }
         ```
         """
         if self.data is None:
@@ -79,7 +79,7 @@ class BggPlays:
 
         num_games = 10
 
-        return [{'name': play['game_name'], 'thumbnail': self._get_thumbnail(play['game_id'])} for play in self.data[:num_games]]
+        return [{'name': play['game_name'], 'date': play['date'], 'thumbnail': self._get_thumbnail(play['game_id'])} for play in self.data[:num_games]]
 
     def cooperative_game_statistics(self) -> dict:
         """ Get cooperative game statistics (number of wins and number of losses). These are parsed from BGG play
@@ -166,18 +166,3 @@ class BggPlays:
         for node in xml_root[0]:
             if node.tag == 'thumbnail':
                 return node.text
-
-
-class BggPlaysSchedulerThread(Thread):
-    """ Thread to run a scheduler until stopped. The scheduler
-    should be configured elsewhere.
-    """
-    def __init__(self, stopFlag):
-        super().__init__()
-        self.stopped = stopFlag
-        self.daemon = True
-
-    def run(self):
-        while not self.stopped.wait(5):
-            logging.debug("Scheduler pending")
-            schedule.run_pending()
