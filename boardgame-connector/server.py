@@ -1,17 +1,28 @@
-from .boardgame_api import fetch_data
-from .boardgame_api import api
+from .bgg_plays import BggPlays
 
 import argparse
 import logging
-from flask import Flask
+from flask import Flask, render_template
 
 app = Flask(__name__)
-app.register_blueprint(api)
+#app.register_blueprint(api)
 
 
 @app.route('/')
-def get_root():
-    return '{"title": "cLautapelikerho API", "content": "Hello world from cLautapelikerho"}'
+@app.route('/<name>')
+def get_root(name=None):
+    if name is None:
+        return "Please give the username to fetch data for"
+
+    data = BggPlays(name)
+    data.fetch_data()
+    games = data.latest_played_games()
+
+    logging.debug("latest games played: {}".format(games))
+
+    html = render_template('full_statistics.html', games=games, name=name)
+
+    return html
 
 
 def run():
@@ -21,7 +32,5 @@ def run():
     args = parser.parse_args()
 
     logging.basicConfig(format='[%(levelname)s] %(message)s', level=getattr(logging, args.loglevel.upper()))
-
-    fetch_data()
 
     app.run('0.0.0.0', args.port)

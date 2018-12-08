@@ -1,0 +1,27 @@
+h1, h2 {
+
+}
+
+body {
+    background: #333;
+    color: #EEE;
+}
+
+@recent {
+    width: 250px;
+    text-align: center;
+}
+
+ul.recent {
+    list-style-type: none;
+    width: 250px;
+    text-align: center;
+}
+
+ul.recent li {
+    margin-down: 20px;
+}
+
+ul.recent img {
+    width: 100px;
+}

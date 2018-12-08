@@ -3,7 +3,6 @@ from .bgg_api import BASE_URL
 from itertools import groupby
 from lxml import etree
 from datetime import timedelta, datetime
-import os
 import logging
 import requests
 import requests_cache
@@ -19,21 +18,19 @@ class BggPlays:
     """ Data object for played games.
     """
 
-    def __init__(self):
+    def __init__(self, username):
         """ Create a new Plays instance. Use `fetch_data` to get
         plays data from the BGG API.
 
         Fetched data is saved into memory (`self.data`). All requests
         to the BGG API are cached for 12 hours to prevent unnecessary
         traffic to the API.
+
+        :param username: the name of the user to fetch data for
         """
         self.data = None
+        self.username = username
         requests_cache.install_cache('bgg', expire_after=timedelta(hours=12))
-
-        try:
-            self.username = os.environ['BGG_USERNAME']
-        except KeyError:
-            raise Exception('Unable to get data from BGG, BGG_USERNAME env variable not set.')
 
     def fetch_data(self):
         """ Fetch and parse plays data from BGG API.
@@ -48,7 +45,7 @@ class BggPlays:
 
         for xml_play in xml_root:
             play = {}
-            play['date'] = xml_play.get('date')
+            play['date'] = datetime.fromisoformat(xml_play.get('date'))
 
             for xml_play_child in xml_play:
                 if xml_play_child.tag == 'item':
@@ -79,7 +76,12 @@ class BggPlays:
 
         num_games = 10
 
-        return [{'name': play['game_name'], 'date': play['date'], 'thumbnail': self._get_thumbnail(play['game_id'])} for play in self.data[:num_games]]
+        return [
+            {'name': play['game_name'],
+             'date': play['date'],
+             'thumbnail': self._get_thumbnail(play['game_id'])}
+            for play in self.data[:num_games]
+        ]
 
     def cooperative_game_statistics(self) -> dict:
         """ Get cooperative game statistics (number of wins and number of losses). These are parsed from BGG play
@@ -123,9 +125,7 @@ class BggPlays:
         if self.data is None:
             raise Exception("No data found for latest played games. Maybe it has not been fetched yet.")
 
-        by_game_id = lambda k: k['game_id']
-
-        grouped = groupby(sorted(self.data, key=by_game_id), key=by_game_id)
+        grouped = groupby(sorted(self.data, key=lambda k: k['game_id']), key=lambda k: k['game_id'])
 
         summed = []
         for key, group in grouped:

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Games played by {{ name }}</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body>
+    <h1>Boardgamegeek statistics for {{ name }}</h1>
+
+    <div class="stat-block" id="recently-played">
+        <h2>Recently played</h2>
+        <ul class="recent">
+            {% for game in games %}
+            <li>
+                <div class="recent-date">
+                    {{ game.date.strftime('%d.%m.%Y') }}
+                </div>
+                <div class="play-image">
+                    <img src="{{ game.thumbnail }}" />
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</body>
+</html>
